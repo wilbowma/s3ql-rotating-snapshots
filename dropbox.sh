@@ -2,13 +2,26 @@
 # A wrapper to detect errors and cause s3ql_backup.sh to fail.
 DROPBOX=dropbox
 
-TMP=`mktemp`
+TMPOUT=`mktemp`
+TMPERR=`mktemp`
 
-if $DROPBOX ${@} 2>&1 >"$TMP" | grep Error > /dev/null; then
+cmd="${1}"
+$DROPBOX ${@} 2>"$TMPERR" >"$TMPOUT"
+code=$?
+
+mexit(){
+  if [ "$cmd" -eq "running" ]; then
+    exit 0
+  else
+    exit $1
+  fi
+}
+
+if grep Error "$TMPERR" > /dev/null; then
   echo "Dropbox encountered an error"
-  cat $TMP
-  exit 1
+  cat $TMPOUT
+  mexit 9001
 else
-  cat $TMP
-  exit 0
+  cat $TMPOUT
+  exit $code
 fi
