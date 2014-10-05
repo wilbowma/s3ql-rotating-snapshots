@@ -10,10 +10,11 @@ MOUNTOPTS="--compress lzma-9"
 # Tag should be a rotating backup tag, such as "hourly" "daily" etc.
 # Can be given on the commandline
 TAG=${TAG:-"daily"}
-EXPIREPYOPTS=${EXPIREPYOPTS:-1 3 7 14 31 60 90 180 160}
+EXPIREPYOPTS=${EXPIREPYOPTS:-1 3 7 14 31 60 90 180 360}
 
-# Machine should be a unique name
-MACHINE="localhost"
+# Machine should be a unique name if you are using Dropbox sync, or if
+# you want to rotate snapshots for different machines separately.
+MACHINE=""
 
 ### If you want to use this script with multiple machines accessing a
 ### single filesystem that is synced over dropbox, you need to read the
@@ -30,15 +31,18 @@ MAXRETRY=3
 WAITTIME=600
 
 ### Executables
+PYTHON2=/usr/bin/python2
 DROPBOX=/usr/bin/dropbox
 EXPIREPY=$HOME/bin/expire_backups.py
 S3QLMOUNT=/usr/bin/mount.s3ql
 S3QLUMOUNT=/usr/bin/umount.s3ql
 S3QLFSCK=/usr/bin/fsck.s3ql
 S3QLCTRL=/usr/bin/s3qlctrl
+S3QLLOCK=/usr/bin/s3qllock
 S3QLCP=/usr/bin/s3qlcp
+S3QLRM=/usr/bin/s3qlrm
 RSYNC=/usr/bin/rsync
-RM=/usr/bin/s3qlrm
+RM=/bin/rm
 MV=/bin/mv
 MKDIR=/bin/mkdir
 RMDIR=/bin/rmdir
@@ -47,10 +51,14 @@ RSYNCOPTS="-aHAXxvr --partial --delete --delete-excluded"
 
 ### Copy commands
 copy_files(){
-  "$RSYNC" "$RSYNCOPTS" \
+  if [ ! -d "$new_backup" ]; then
+    $MKDIR -p "$new_backup"
+  fi
+
+  $RSYNC $RSYNCOPTS \
     --include-from "$HOME/backup.lst" \
     "$HOME/" \
-    "./$new_backup/hydra"
+    "./$new_backup/home"
 }
 
 # ========================================================================
@@ -97,6 +105,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
       sleep $WAITTIME
     else
       echo "$MACHINE" > $LOCKFILE
+    trap "cd /; $RM $LOCKFILE" EXIT
       while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
         sleep 5
       done
@@ -129,7 +138,6 @@ if $UNSAFE_IM_REALLY_STUPID; then
   fi
 fi
 
-
 # Abort entire script if any command fails
 set -e
 
@@ -137,19 +145,19 @@ set -e
 $S3QLFSCK --batch "$BACKUPURI"
 
 # Create a temporary MOUNT and mount file system
-"$MKDIR" -p "$MOUNT"
-"$S3QLMOUNT" "$MOUNTOPTS" "$BACKUPURI" "$MOUNT"
+$MKDIR -p "$MOUNT"
+$S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 
 # Make sure the file system is unmounted when we are done
 # Note that this overwrites the earlier trap, so we
 # also delete the lock file here.
-trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; $RM '$lock'; $RM $LOCKFILE" EXIT
+trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; $RM '$LOCKFILE'" EXIT
 
-"$MKDIR" -p "$MOUNT/$MACHINE/$TAG"
+$MKDIR -p "$MOUNT/$MACHINE/$TAG"
 cd "$MOUNT/$MACHINE/$TAG"
 
 # Figure out the most recent backup
-last_backup=`python <<EOF
+last_backup=`$PYTHON2 <<EOF
 import os
 import re
 backups=sorted(x for x in os.listdir('.') if re.match(r'^[\\d-]{10}_[\\d:]{8}$', x))
@@ -161,17 +169,17 @@ EOF`
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 if [ -n "$last_backup" ]; then
   echo "Copying $last_backup to $new_backup..."
-  "$S3QLCP" "$last_backup" "$new_backup"
+  $S3QLCP "$last_backup" "$new_backup"
 
   # Make the last backup immutable
   # (in case the previous backup was interrupted prematurely)
-  "$S3QLLOCK" "$last_backup"
+  $S3QLLOCK "$last_backup"
 fi
 
 copy_files
 
 # Make the new backup immutable
-"$S3QLLOCK" "$new_backup"
+$S3QLLOCK "$new_backup"
 
 # Expire old backups
 
@@ -180,26 +188,26 @@ copy_files
 # installed an S3QL package for your distribution, this script *may*
 # be installed, and it *may* also not have the .py ending.
 
-"$EXPIREPY" --use-s3qlrm "$EXPIREPYOPTS"
+$EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID; then
-  "$S3QLCTRL" upload-meta "$MOUNT"
-  "$S3QLCTRL" flushcache "$MOUNT"
+  $S3QLCTRL upload-meta "$MOUNT"
+  $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
-  "$S3QLUMOUNT" "$MOUNT"
+  $S3QLUMOUNT "$MOUNT"
 
-  "$DROPBOX" start
+  $DROPBOX start
 
   echo "Waiting for sync..."
-  while "$DROPBOX" status | grep -v "Up to date" > /dev/null; do
+  while $DROPBOX status | grep -v "Up to date" > /dev/null; do
     sleep 5
   done
 
-  "$RM" "$LOCKFILE"
+  $RM "$LOCKFILE"
 
-  while "$DROPBOX" status | grep -v "Up to date" > /dev/null; do
+  while $DROPBOX status | grep -v "Up to date" > /dev/null; do
     sleep 5
   done
 
-  "$RMDIR" "$MOUNT"
+  $RMDIR "$MOUNT"
 fi
