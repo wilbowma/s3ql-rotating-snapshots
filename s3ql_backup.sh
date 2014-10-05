@@ -199,6 +199,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
   $S3QLUMOUNT "$MOUNT"
+  trap "cd /; $RMDIR '$MOUNT'; $RM '$LOCKFILE'" EXIT
 
   $DROPBOX start
 
@@ -208,10 +209,9 @@ if $UNSAFE_IM_REALLY_STUPID; then
   done
 
   $RM "$LOCKFILE"
+  trap "cd /; $RMDIR '$MOUNT'" EXIT
 
   while $DROPBOX status | grep -v "Up to date" > /dev/null; do
     sleep 5
   done
-
-  $RMDIR "$MOUNT"
 fi
