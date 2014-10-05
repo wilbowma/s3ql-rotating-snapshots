@@ -55,12 +55,14 @@ copy_files(){
     $MKDIR -p "$new_backup"
   fi
 
-  cd "$new_backup"
+  pushd "$new_backup"
 
   $RSYNC $RSYNCOPTS \
     --include-from "$HOME/backup.lst" \
     "$HOME/" \
     "./home"
+
+  popd
 }
 
 # ========================================================================
