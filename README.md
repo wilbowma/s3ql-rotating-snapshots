@@ -23,8 +23,9 @@ The file `crontab` contains an example of invoking `s3ql_backup.sh` with
 an `hourly` and `daily` tag, with different expiration options.
 
 ## Adding new source/destinations
-Simply add a call to `rsync', or your favorite file copier, in the
-`copy_files` function in the configuration section of the script.
+Simply add a call to `rsync`, or your favorite file copier, in the
+function `copy_files`, in the configuration section of the
+`s3ql_backup.sh`.
 
 ##Dropbox Sync
 This is also extended with a feature I use in my own backups. It is
