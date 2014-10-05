@@ -86,6 +86,9 @@ copy_files(){
 #   If lockfile still contains unique string, lock acquired.
 #   Otherwise, retry to acquire lock (up to MAXRETRY).
 
+# Abort entire script if any command fails
+set -e
+
 if $UNSAFE_IM_REALLY_STUPID; then
 
   if $DROPBOX running; then
@@ -105,7 +108,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   FLAG=0
   while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
     let "RETRY+=1"
-    if $DROPBOX filestatus $LOCKFILE | grep "up to date"; then
+    if $DROPBOX filestatus $LOCKFILE | grep "up to date" > /dev/null; then
       sleep $WAITTIME
     else
       echo "$MACHINE" > $LOCKFILE
@@ -113,7 +116,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
       while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
         sleep 5
       done
-      if ! cat $LOCKFILE | grep "$MACHINE"; then
+      if ! cat $LOCKFILE | grep "$MACHINE" > /dev/null; then
         echo "Invalid lockfile string"
       else
         FLAG=1
@@ -142,8 +145,6 @@ if $UNSAFE_IM_REALLY_STUPID; then
   fi
 fi
 
-# Abort entire script if any command fails
-set -e
 
 # Recover cache if e.g. system was shut down while fs was mounted
 $S3QLFSCK --batch "$BACKUPURI"
