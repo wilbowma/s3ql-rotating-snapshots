@@ -24,3 +24,7 @@ This protocol is probably broken, but seems to work for me in practice.
 
 Don't use it. Really. But please feel free to tell me how the protocol
 is broken and help me fix it.
+
+##License
+Large chunks of `s3ql_backup.sh` and the entirety of `expire_backups.py`
+are copied verbatim from the s3ql project. See `LICENSE`.
