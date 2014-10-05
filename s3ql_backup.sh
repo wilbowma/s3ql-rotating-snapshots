@@ -32,7 +32,7 @@ WAITTIME=600
 
 ### Executables
 PYTHON2=/usr/bin/python2
-DROPBOX=/usr/bin/dropbox
+DROPBOX="`dirname "$0"`/dropbox.sh"
 EXPIREPY=$HOME/bin/expire_backups.py
 S3QLMOUNT=/usr/bin/mount.s3ql
 S3QLUMOUNT=/usr/bin/umount.s3ql
@@ -65,6 +65,9 @@ copy_files(){
   popd
 }
 
+debug(){
+  echo $1
+}
 # ========================================================================
 # End of configuration
 # ========================================================================
@@ -91,14 +94,18 @@ set -e
 
 if $UNSAFE_IM_REALLY_STUPID; then
 
+  debug "Is dropbox running?"
   if $DROPBOX running; then
+    debug "Starting Dropbox"
     $DROPBOX start
   fi
 
+  debug "Waiting for Dropbox to finish starting"
   while $DROPBOX status | grep Starting; do
     sleep .5
   done
 
+  debug "IS filesystem syncing?"
   if $DROPBOX filestatus $BACKUP | grep syncing; then
     echo "Backup directory not in sync; not safe to backup"
     exit 1
@@ -108,11 +115,13 @@ if $UNSAFE_IM_REALLY_STUPID; then
   FLAG=0
   while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
     let "RETRY+=1"
-    if $DROPBOX filestatus $LOCKFILE | grep "up to date" > /dev/null; then
+    debug "Does lock exist?"
+    if $DROPBOX filestatus $LOCKFILE | grep -v "File doesn't exist" > /dev/null; then
       sleep $WAITTIME
     else
       echo "$MACHINE" > $LOCKFILE
       trap "cd /; $RM $LOCKFILE" EXIT
+      debug "Waiting for lock to sync"
       while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
         sleep 5
       done
