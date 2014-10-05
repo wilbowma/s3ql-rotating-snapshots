@@ -88,8 +88,7 @@ def main(args=None):
 
     # Determine available backups
     backup_list = set(x for x in os.listdir('.')
-                      if re.match(r'^\d{4}-\d\d-\d\d_\d\d:\d\d:\d\d$'
-                          % options.tag, x))
+                      if re.match(r'^\d{4}-\d\d-\d\d_\d\d:\d\d:\d\d$', x))
 
     if not os.path.exists(options.state) and len(backup_list) > 1:
         if not options.reconstruct_state:
