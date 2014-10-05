@@ -105,7 +105,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
       sleep $WAITTIME
     else
       echo "$MACHINE" > $LOCKFILE
-    trap "cd /; $RM $LOCKFILE" EXIT
+      trap "cd /; $RM $LOCKFILE" EXIT
       while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
         sleep 5
       done
