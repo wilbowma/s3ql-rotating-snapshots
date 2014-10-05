@@ -195,6 +195,8 @@ $S3QLLOCK "$new_backup"
 $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID; then
+  cd /
+  trap "$RMDIR '$MOUNT'; $RM '$LOCKFILE'" EXIT
   $S3QLCTRL upload-meta "$MOUNT"
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
@@ -209,7 +211,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   done
 
   $RM "$LOCKFILE"
-  trap "cd /; $RMDIR '$MOUNT'" EXIT
+  trap "$RMDIR '$MOUNT'" EXIT
 
   while $DROPBOX status | grep -v "Up to date" > /dev/null; do
     sleep 5
