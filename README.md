@@ -1,7 +1,7 @@
 s3ql-rotating-snapshots
 ====================
 
-This project extends `s3ql_backup.sh` from the `s3ql` project with a
+This project extends `s3ql_backup.sh` from the s3ql project with a
 couple of features to make configuring the script, and enabling
 rotating snapshots in the style `rsnapshot`, simpler.
 
@@ -18,7 +18,7 @@ This is also extended with a feature I use in my own backups. It is
 turned off by default because you really shouldn't use it.
 
 This feature enables a single s3ql file system, synchronized over
-Dropbox, to be used by multiple machines. Feature included an ad-hoc
+Dropbox, to be used by multiple machines. This feature includes an ad-hoc
 protocol to ensure only one machine mounts the file system at a time.
 This protocol is probably broken, but seems to work for me in practice.
 
