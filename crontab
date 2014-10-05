@@ -1,2 +1,6 @@
+# keep daily snapshots for the past week, a 2 week snapsho, then one for
+# every month up to a year
 @daily /usr/bin/lockrun -n /tmp/lock.backup TAG="daily" EXPIREPYOPTS="1 2 3 4 5 6 7 14 31 60 90 120 150 180 210 240 270 300 330 360"  ~/bin/s3ql_backup.sh
+
+# keep hourly snapshots for the last 12 hours
 @hourly /usr/bin/lockrun -n /tmp/lock.backup TAG="hourly" EXPIREPYOPTS="1 2 3 4 5 6 7 8 9 10 11 12" ~/bin/s3ql_backup.sh
