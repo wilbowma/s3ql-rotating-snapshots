@@ -42,10 +42,11 @@ own backups. It is turned off by default because you really shouldn't
 use it.
 
 I use a local file system synchronized by Dropbox in my own backups.
+The s3ql file system only supports being mounted in one place at a time,
+so my previous solution was a separajte file system for each machine.
 However, many of my machines have common files (config file, git repos,
-etc), the s3ql file system only supports being mounted in one place at a
-time, so my previous solution was a separte file system for each
-machine. This really prevented optimal use of data deduplication.
+etc), so multiple file systems really prevented optimal use of data
+deduplication.
 
 This feature enables a single s3ql file system, synchronized over
 Dropbox, to be used by multiple machines. This feature includes an
