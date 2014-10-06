@@ -116,6 +116,11 @@ if $UNSAFE_IM_REALLY_STUPID; then
     sleep .5
   done
 
+  if [ ! -d $BACKUP ]; then
+    echo "Backup dir doesn't exist"
+    exit 6
+  fi
+
   debug "Is filesystem syncing?"
   if $DROPBOX filestatus $BACKUP | grep syncing; then
     echo "Backup directory not in sync; not safe to backup"
@@ -149,15 +154,15 @@ if $UNSAFE_IM_REALLY_STUPID; then
     echo "Couldn't obtain a lock"
     exit 8
   fi
+  debug "Got a lock!"
 
   if $DROPBOX running; then
     echo "Dropbox should have been running"
     exit 9
   fi
 
-  if [ ! -d $BACKUP ]; then
-    echo "Backup dir doesn't exist"
-    exit 6
+  if $DROPBOX filestatus $BACKUP | grep syncing; then
+    sleep 5
   fi
 
   if [ -d $MOUNT ]; then
