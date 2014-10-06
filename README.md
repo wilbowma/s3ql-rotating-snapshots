@@ -53,6 +53,11 @@ Dropbox, to be used by multiple machines. This feature includes an
 ad-hoc protocol to ensure only one machine mounts the file system at a
 time.
 
+The current protocol seems to work in practice so long as two machines
+don't run the script at exactly the same time, so the obvious solution
+is to simply offset your cron jobs. But that's unsatisfying so I'm
+trying to fix it.
+
 **I've currently been running with 0 successful continuous days of
 use.**
 
