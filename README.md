@@ -50,8 +50,10 @@ machine. This really prevented optimal use of data deduplication.
 This feature enables a single s3ql file system, synchronized over
 Dropbox, to be used by multiple machines. This feature includes an
 ad-hoc protocol to ensure only one machine mounts the file system at a
-time.  This protocol is probably broken, but seems to work for me in
-practice.
+time.
+
+**I've currently been running with 0 successful continuous days of
+use.**
 
 Don't use it. Really.
 
