@@ -130,7 +130,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     lock_sync
     if [ ! -s $LOCKFILE ]; then
       echo "$MACHINE" > $LOCKFILE
-      trap "cd /; echo '' > $LOCKFILE" EXIT
+      trap "cd /; echo -n '' > $LOCKFILE" EXIT
       lock_sync
     else
       debug "Lock file not empty"
@@ -177,7 +177,7 @@ $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 # Make sure the file system is unmounted when we are done
 # Note that this overwrites the earlier trap, so we
 # also delete the lock file here.
-trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo '' > '$LOCKFILE'" EXIT
+trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
 
 $MKDIR -p "$MOUNT/$MACHINE/$TAG"
 cd "$MOUNT/$MACHINE/$TAG"
@@ -218,12 +218,12 @@ $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID; then
   cd /
-  trap "$RMDIR '$MOUNT'; echo '' > '$LOCKFILE'" EXIT
+  trap "$RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
   $S3QLCTRL upload-meta "$MOUNT"
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
   $S3QLUMOUNT "$MOUNT"
-  trap "cd /; $RMDIR '$MOUNT'; echo '' > '$LOCKFILE'" EXIT
+  trap "cd /; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
 
   $DROPBOX start
 
@@ -232,7 +232,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     sleep 5
   done
 
-  echo '' > "$LOCKFILE"
+  echo -n '' > "$LOCKFILE"
   trap "$RMDIR '$MOUNT'" EXIT
 
   while $DROPBOX status | grep -v "Up to date" > /dev/null; do
