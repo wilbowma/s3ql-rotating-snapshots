@@ -118,6 +118,11 @@ if $UNSAFE_IM_REALLY_STUPID; then
     exit 1
   fi
 
+  if [ ! "`find $BACKUP -iname '*conflicted copy*' -and -not -iname 'lock*'`" = "" ]; then
+    echo "There are conflicts. Some went wrong on previous run. Remove conflicts and fsck manually."
+    exit 10
+  fi
+
   RETRY=0
   FLAG=0
   while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
