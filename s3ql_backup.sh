@@ -43,6 +43,7 @@ S3QLCP=/usr/bin/s3qlcp
 S3QLRM=/usr/bin/s3qlrm
 RSYNC=/usr/bin/rsync
 RM=/bin/rm
+CP=/bin/cp
 MV=/bin/mv
 MKDIR=/bin/mkdir
 RMDIR=/bin/rmdir
@@ -216,7 +217,9 @@ $S3QLLOCK "$new_backup"
 # installed an S3QL package for your distribution, this script *may*
 # be installed, and it *may* also not have the .py ending.
 
-$S3QLCP .expire_backups.dat .expire_backups.dat.bak
+if $UNSAFE_IM_REALLY_STUPID; then
+  $CP .expire_backups.dat .expire_backups.dat.bak
+fi
 
 $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
