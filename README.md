@@ -20,7 +20,7 @@ backups for each machine.
 ## Intervals
 Use the variable `$TAG` to create a new rotated tag.  This variable
 could be, for instance, set to `hourly` in one invocation, and `daily`
-in another. It's essentially equivalent to `rsnapshot' intervals.
+in another. It's essentially equivalent to `rsnapshot` intervals.
 
 The backups under each tag are rotated separately, and can have
 different expiration options set via the `$EXPIREPYOPTS` variable. This
