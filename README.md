@@ -37,7 +37,7 @@ function `copy_files`, in the configuration section of the
 `s3ql_backup.sh`.
 
 ##Dropbox Sync
-This is project also extend `s3ql_backup.sh` with a feature I use in my
+This project also extends `s3ql_backup.sh` with a feature I use in my
 own backups. It is turned off by default because you really shouldn't
 use it.
 
