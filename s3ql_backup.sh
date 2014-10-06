@@ -101,7 +101,7 @@ lock_sync(){
 
 if $UNSAFE_IM_REALLY_STUPID; then
 
-  if [ ! -e $LOCKFILE ];
+  if [ ! -e $LOCKFILE ]; then
     touch $LOCKFILE
   fi
 
