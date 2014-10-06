@@ -164,6 +164,8 @@ if $UNSAFE_IM_REALLY_STUPID; then
     echo "Mount point exists and shouldn't"
     exit 2
   fi
+
+  $DROPBOX stop
 fi
 
 
@@ -213,6 +215,8 @@ $S3QLLOCK "$new_backup"
 # by default when you install from the source tarball. If you have
 # installed an S3QL package for your distribution, this script *may*
 # be installed, and it *may* also not have the .py ending.
+
+$S3QLCP .expire_backups.dat .expire_backups.dat.bak
 
 $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
