@@ -101,6 +101,10 @@ lock_sync(){
 
 if $UNSAFE_IM_REALLY_STUPID; then
 
+  if [ ! -e $LOCKFILE ];
+    touch $LOCKFILE
+  fi
+
   debug "Is dropbox running?"
   if $DROPBOX running; then
     debug "Starting Dropbox"
@@ -112,7 +116,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     sleep .5
   done
 
-  debug "IS filesystem syncing?"
+  debug "Is filesystem syncing?"
   if $DROPBOX filestatus $BACKUP | grep syncing; then
     echo "Backup directory not in sync; not safe to backup"
     exit 1
