@@ -43,7 +43,7 @@ use it.
 
 I use a local file system synchronized by Dropbox in my own backups.
 The s3ql file system only supports being mounted in one place at a time,
-so my previous solution was a separajte file system for each machine.
+so my previous solution was a separate file system for each machine.
 However, many of my machines have common files (config file, git repos,
 etc), so multiple file systems really prevented optimal use of data
 deduplication.
