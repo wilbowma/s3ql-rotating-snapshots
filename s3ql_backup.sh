@@ -80,15 +80,6 @@ debug(){
 # This protocol is totally suspect. It probably doesn't work. Don't use
 # it. Srsly.
 
-# Wait for dropbox to sync.
-# If lockfile exists, someone else has lock. Wait WAITTIME and retry
-#   to acquire lock (up to MAXRETRY).
-# If lockfile doesn't exist, create it and write unique string (MACHINE)
-# to it.
-#   Wait for lockfile to sync.
-#   If lockfile still contains unique string, lock acquired.
-#   Otherwise, retry to acquire lock (up to MAXRETRY).
-
 # Abort entire script if any command fails
 set -e
 
