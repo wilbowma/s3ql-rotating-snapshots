@@ -10,7 +10,7 @@ $DROPBOX ${@} 2>"$TMPERR" >"$TMPOUT"
 code=$?
 
 mexit(){
-  if [ "$cmd" -eq "running" ]; then
+  if [ "$cmd" = "running" ]; then
     exit 0
   else
     exit $1
