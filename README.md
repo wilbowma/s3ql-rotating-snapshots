@@ -1,7 +1,7 @@
 s3ql-rotating-snapshots
 ====================
 
-The [s3ql file system][https://bitbucket.org/nikratio/s3ql/wiki/Home] is
+The [s3ql file system](https://bitbucket.org/nikratio/s3ql/wiki/Home) is
 a user-level file system with compression, encryption, and data
 deduplication features. It also has support for using efficiently
 Amazon's S3, Google Cloud Storage, and numerous other cloud backends.
@@ -25,7 +25,7 @@ in another. It's essentially equivalent to `rsnapshot' intervals.
 The backups under each tag are rotated separately, and can have
 different expiration options set via the `$EXPIREPYOPTS` variable. This
 variable is a list of arguments to pass to `expire_python.py`, so see
-the [s3ql documentation][http://www.rath.org/s3ql-docs/contrib.html] for
+the [s3ql documentation](http://www.rath.org/s3ql-docs/contrib.html) for
 how to use `expire_python.py`.
 
 The file `crontab` contains an example of invoking `s3ql_backup.sh` with
@@ -60,8 +60,7 @@ Don't use it. Really.
 But please feel free to play with it, tell me how the protocol is
 broken, or help me fix it.
 
-This feature requires the
-[Dropbox command line interface][http://www.dropboxwiki.com/tips-and-tricks/using-the-official-dropbox-command-line-interface-cli#Installation].
+This feature requires the [Dropbox command line interface](http://www.dropboxwiki.com/tips-and-tricks/using-the-official-dropbox-command-line-interface-cli#Installation).
 
 ##License
 Large chunks of `s3ql_backup.sh` and the entirety of `expire_backups.py`
