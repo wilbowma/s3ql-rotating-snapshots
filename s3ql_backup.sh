@@ -128,7 +128,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     let "RETRY+=1"
     debug "Waiting for lock to sync"
     lock_sync
-    if [ -s $LOCKFILE ]; then
+    if [ ! -s $LOCKFILE ]; then
       echo "$MACHINE" > $LOCKFILE
       trap "cd /; echo '' > $LOCKFILE" EXIT
       lock_sync
