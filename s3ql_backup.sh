@@ -128,16 +128,15 @@ if $UNSAFE_IM_REALLY_STUPID; then
       echo "$MACHINE" > $LOCKFILE
       trap "cd /; echo -n '' > $LOCKFILE" EXIT
       lock_sync
+      if ! cat $LOCKFILE | grep "$MACHINE" > /dev/null; then
+        echo "Invalid lockfile string"
+        sleep $WAITTIME
+      else
+        FLAG=1
+      fi
     else
       debug "Lock file not empty"
       sleep $WAITTIME
-    fi
-
-    if ! cat $LOCKFILE | grep "$MACHINE" > /dev/null; then
-      echo "Invalid lockfile string"
-      sleep $WAITTIME
-    else
-      FLAG=1
     fi
   done
 
