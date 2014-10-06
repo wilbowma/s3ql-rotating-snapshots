@@ -210,6 +210,8 @@ copy_files
 # Make the new backup immutable
 $S3QLLOCK "$new_backup"
 
+cd "$MOUNT/$MACHINE/$TAG"
+
 # Expire old backups
 
 # Note that expire_backups.py comes from contrib/ and is not installed
