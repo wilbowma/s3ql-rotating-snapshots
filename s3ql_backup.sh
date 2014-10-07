@@ -31,22 +31,22 @@ MAXRETRY=3
 WAITTIME=300
 
 ### Executables
-PYTHON2=/usr/bin/python2
-DROPBOX="`dirname "$0"`/dropbox.sh"
-EXPIREPY=$HOME/bin/expire_backups.py
-S3QLMOUNT=/usr/bin/mount.s3ql
-S3QLUMOUNT=/usr/bin/umount.s3ql
-S3QLFSCK=/usr/bin/fsck.s3ql
-S3QLCTRL=/usr/bin/s3qlctrl
-S3QLLOCK=/usr/bin/s3qllock
-S3QLCP=/usr/bin/s3qlcp
-S3QLRM=/usr/bin/s3qlrm
-RSYNC=/usr/bin/rsync
-RM=/bin/rm
-CP=/bin/cp
-MV=/bin/mv
-MKDIR=/bin/mkdir
-RMDIR=/bin/rmdir
+PYTHON2=python2
+DROPBOX="`dirname \"$0\"`/dropbox.sh"
+EXPIREPY="`dirname \"$0\"`/expire_backups.py"
+S3QLMOUNT=mount.s3ql
+S3QLUMOUNT=umount.s3ql
+S3QLFSCK=fsck.s3ql
+S3QLCTRL=s3qlctrl
+S3QLLOCK=s3qllock
+S3QLCP=s3qlcp
+S3QLRM=s3qlrm
+RSYNC=rsync
+RM=rm
+CP=cp
+MV=mv
+MKDIR=mkdir
+RMDIR=rmdir
 
 RSYNCOPTS="-aHAXxvr --partial --delete --delete-excluded"
 
