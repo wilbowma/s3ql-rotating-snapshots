@@ -1,12 +1,12 @@
 # keep hourly snapshots for the last 24 hours
 # TODO: Does expire_backups.py start counting at 0?
-@hourly TAG="hourly" EXPIREPYOPTS="`seq -s ' ' 1 24`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
+@hourly INTERVAL="hourly" EXPIREPYOPTS="`seq -s ' ' 1 24`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
 
 # keep daily snapshots for the past week
-@daily TAG="daily" EXPIREPYOPTS="`seq -s ' ' 1 7`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
+@daily INTERVAL="daily" EXPIREPYOPTS="`seq -s ' ' 1 7`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
 
 # keep weekly snapshots for the past month
-@weekly TAG="weekly" EXPIREPYOPTS="`seq -s ' ' 1 4`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
+@weekly INTERVAL="weekly" EXPIREPYOPTS="`seq -s ' ' 1 4`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
 
 # keep month snapshots for the past year
-@monthly TAG="monthly" EXPIREPYOPTS="`seq -s ' ' 1 12`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh
+@monthly INTERVAL="monthly" EXPIREPYOPTS="`seq -s ' ' 1 12`" /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh

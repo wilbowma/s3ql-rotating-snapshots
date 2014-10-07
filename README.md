@@ -14,22 +14,22 @@ features to simplify configuring the script, and enabling rotating
 snapshots in the style `rsnapshot`.
 
 ## Multiple machines
-Use the variable `$MACHINE` to create a separately rotated set of
+Use the variable `$HOSTNAME` to create a separately rotated set of
 backups for each machine.
 
 ## Intervals
-Use the variable `$TAG` to create a new rotated tag.  This variable
+Use the variable `$INTERVAL` to create a new rotating interval.  This variable
 could be, for instance, set to `hourly` in one invocation, and `daily`
 in another. It's essentially equivalent to `rsnapshot` intervals.
 
-The backups under each tag are rotated separately, and can have
+The backups under each interval are rotated separately, and can have
 different expiration options set via the `$EXPIREPYOPTS` variable. This
 variable is a list of arguments to pass to `expire_python.py`, so see
 the [s3ql documentation](http://www.rath.org/s3ql-docs/contrib.html) for
 how to use `expire_python.py`.
 
 The file `crontab` contains an example of invoking `s3ql_backup.sh` with
-an `hourly` and `daily` tag, with different expiration options.
+an `hourly` and `daily` interval, with different expiration options.
 
 ## Adding new source/destinations
 Simply add a call to `rsync`, or your favorite file copier, in the

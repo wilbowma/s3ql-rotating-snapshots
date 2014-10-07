@@ -7,14 +7,14 @@ BACKUPURI="local://$BACKUP"
 MOUNT="/tmp/s3ql_backup_$$"
 MOUNTOPTS="--compress lzma-9"
 
-# Tag should be a rotating backup tag, such as "hourly" "daily" etc.
+# Interval should be a rotating interval, such as "hourly" "daily" etc.
 # Can be given on the commandline
-TAG=${TAG:-"daily"}
+INTERVAL=${INTERVAL:-"daily"}
 EXPIREPYOPTS=${EXPIREPYOPTS:-1 3 7 14 31 60 90 180 360}
 
 # Machine should be a unique name if you are using Dropbox sync, or if
 # you want to rotate snapshots for different machines separately.
-MACHINE=""
+HOSTNAME="`hostname`"
 
 ### If you want to use this script with multiple machines accessing a
 ### single filesystem that is synced over dropbox, you need to read the
@@ -22,7 +22,7 @@ MACHINE=""
 ### flag to true.
 
 ### If you just want to use this script, extended with the
-### machine/tagging features, don't touch this.
+### machine/interval features, don't touch this.
 UNSAFE_IM_REALLY_STUPID=false
 
 # Configure for dropbox sync/lock protocol
@@ -131,10 +131,10 @@ if $UNSAFE_IM_REALLY_STUPID; then
     debug "Waiting for lock to sync"
     lock_sync
     if [ ! -s $LOCKFILE ]; then
-      echo "$MACHINE" > $LOCKFILE
+      echo "$HOSTNAME" > $LOCKFILE
       trap "cd /; echo -n '' > $LOCKFILE" EXIT
       lock_sync
-      if ! cat $LOCKFILE | grep "$MACHINE" > /dev/null; then
+      if ! cat $LOCKFILE | grep "$HOSTNAME" > /dev/null; then
         echo "Invalid lockfile string"
         sleep $WAITTIME
       else
@@ -182,8 +182,8 @@ $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 # also delete the lock file here.
 trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
 
-$MKDIR -p "$MOUNT/$MACHINE/$TAG"
-cd "$MOUNT/$MACHINE/$TAG"
+$MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
+cd "$MOUNT/$HOSTNAME/$INTERVAL"
 
 # Figure out the most recent backup
 last_backup=`$PYTHON2 <<EOF
@@ -210,7 +210,7 @@ copy_files
 # Make the new backup immutable
 $S3QLLOCK "$new_backup"
 
-cd "$MOUNT/$MACHINE/$TAG"
+cd "$MOUNT/$HOSTNAME/$INTERVAL"
 
 # Expire old backups
 
