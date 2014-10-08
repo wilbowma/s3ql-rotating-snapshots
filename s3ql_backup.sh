@@ -88,7 +88,7 @@ dropbox_ready(){
     echo "Dropbox should have been running"
     exit 9
   fi
-  while $DROPBOX status | grep "Connecting" > /dev/null; do
+  while $DROPBOX status | grep -e "Starting" -e "Connecting" > /dev/null; do
     sleep 5
   done
 }
@@ -116,10 +116,6 @@ fi
 
 if $UNSAFE_IM_REALLY_STUPID; then
 
-  if [ ! -e $LOCKFILE ]; then
-    touch $LOCKFILE
-  fi
-
   debug "Is dropbox running?"
   if $DROPBOX running; then
     debug "Starting Dropbox"
@@ -128,6 +124,10 @@ if $UNSAFE_IM_REALLY_STUPID; then
 
   debug "Is filesystem ready?"
   fs_sync
+
+  if [ ! -e $LOCKFILE ]; then
+    touch $LOCKFILE
+  fi
 
   if [ ! "`find $BACKUP -iname '*conflicted copy*' -and -not -iname 'lock*'`" = "" ]; then
     echo "There are conflicts. Some went wrong on previous run. Remove conflicts and fsck manually."
