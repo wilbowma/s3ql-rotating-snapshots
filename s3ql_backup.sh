@@ -169,6 +169,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   fi
 
   $DROPBOX stop
+  trap "echo -n '' > $LOCKFILE; $DROPBOX start" EXIT
 fi
 
 
@@ -182,7 +183,11 @@ $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 # Make sure the file system is unmounted when we are done
 # Note that this overwrites the earlier trap, so we
 # also delete the lock file here.
-trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+if $UNSAFE_IM_REALLY_STUPID; then
+  trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'; $DROPBOX start" EXIT
+else
+  trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+fi
 
 $MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
 cd "$MOUNT/$HOSTNAME/$INTERVAL"
@@ -229,12 +234,12 @@ $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID; then
   cd /
-  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'; $DROPBOX start" EXIT
   $S3QLCTRL upload-meta "$MOUNT"
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
   $S3QLUMOUNT "$MOUNT"
-  trap "$RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+  trap "$RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'; $DROPBOX start" EXIT
 
   $DROPBOX start
 
