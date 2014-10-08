@@ -91,6 +91,13 @@ lock_sync(){
   done
 }
 
+fs_sync(){
+  sleep 2
+  while $DROPBOX filestatus $BACKUP | grep syncing > /dev/null; do
+    sleep 5
+  done
+}
+
 if $UNSAFE_IM_REALLY_STUPID; then
 
   if [ ! -e $LOCKFILE ]; then
@@ -114,10 +121,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   fi
 
   debug "Is filesystem syncing?"
-  if $DROPBOX filestatus $BACKUP | grep syncing; then
-    echo "Backup directory not in sync; not safe to backup"
-    exit 1
-  fi
+  fs_sync
 
   if [ ! "`find $BACKUP -iname '*conflicted copy*' -and -not -iname 'lock*'`" = "" ]; then
     echo "There are conflicts. Some went wrong on previous run. Remove conflicts and fsck manually."
@@ -131,10 +135,10 @@ if $UNSAFE_IM_REALLY_STUPID; then
     debug "Waiting for lock to sync"
     lock_sync
     if [ ! -s $LOCKFILE ]; then
-      echo "$HOSTNAME" > $LOCKFILE
-      trap "cd /; echo -n '' > $LOCKFILE" EXIT
+      echo "$HOSTNAME$$" > $LOCKFILE
+      trap "echo -n '' > $LOCKFILE" EXIT
       lock_sync
-      if ! cat $LOCKFILE | grep "$HOSTNAME" > /dev/null; then
+      if ! cat $LOCKFILE | grep "$HOSTNAME$$" > /dev/null; then
         echo "Invalid lockfile string"
         sleep $WAITTIME
       else
@@ -157,9 +161,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     exit 9
   fi
 
-  if $DROPBOX filestatus $BACKUP | grep syncing; then
-    sleep 5
-  fi
+  fs_sync
 
   if [ -d $MOUNT ]; then
     echo "Mount point exists and shouldn't"
