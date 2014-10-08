@@ -83,20 +83,36 @@ debug(){
 
 # Abort entire script if any command fails
 set -e
+dropbox_ready(){
+  if $DROPBOX running; then
+    echo "Dropbox should have been running"
+    exit 9
+  fi
+  while $DROPBOX status | grep "Connecting" > /dev/null; do
+    sleep 5
+  done
+}
 
 lock_sync(){
   sleep 2
-  while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
+  dropbox_ready
+   while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
     sleep 5
   done
 }
 
 fs_sync(){
   sleep 2
+  dropbox_ready
   while $DROPBOX filestatus $BACKUP | grep syncing > /dev/null; do
     sleep 5
   done
 }
+
+if [ ! -d $BACKUP ]; then
+  echo "Backup dir doesn't exist"
+  exit 6
+fi
 
 if $UNSAFE_IM_REALLY_STUPID; then
 
@@ -110,17 +126,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     $DROPBOX start
   fi
 
-  debug "Waiting for Dropbox to finish starting"
-  while $DROPBOX status | grep Starting; do
-    sleep .5
-  done
-
-  if [ ! -d $BACKUP ]; then
-    echo "Backup dir doesn't exist"
-    exit 6
-  fi
-
-  debug "Is filesystem syncing?"
+  debug "Is filesystem ready?"
   fs_sync
 
   if [ ! "`find $BACKUP -iname '*conflicted copy*' -and -not -iname 'lock*'`" = "" ]; then
@@ -156,17 +162,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   fi
   debug "Got a lock!"
 
-  if $DROPBOX running; then
-    echo "Dropbox should have been running"
-    exit 9
-  fi
-
   fs_sync
-
-  if [ -d $MOUNT ]; then
-    echo "Mount point exists and shouldn't"
-    exit 2
-  fi
 
   $DROPBOX stop
   trap "echo -n '' > $LOCKFILE; $DROPBOX start" EXIT
@@ -175,6 +171,11 @@ fi
 
 # Recover cache if e.g. system was shut down while fs was mounted
 $S3QLFSCK --batch "$BACKUPURI"
+
+if [ -d $MOUNT ]; then
+  echo "Mount point exists and shouldn't"
+  exit 2
+fi
 
 # Create a temporary MOUNT and mount file system
 $MKDIR -p "$MOUNT"
@@ -244,14 +245,10 @@ if $UNSAFE_IM_REALLY_STUPID; then
   $DROPBOX start
 
   echo "Waiting for sync..."
-  while $DROPBOX status | grep -v "Up to date" > /dev/null; do
-    sleep 5
-  done
+  fs_sync
 
   echo -n '' > "$LOCKFILE"
   trap "$RMDIR '$MOUNT'" EXIT
 
-  while $DROPBOX status | grep -v "Up to date" > /dev/null; do
-    sleep 5
-  done
+  fs_sync
 fi
