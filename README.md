@@ -58,7 +58,7 @@ don't run the script at exactly the same time, so the obvious solution
 is to simply offset your cron jobs. But that's unsatisfying so I'm
 trying to fix it.
 
-**I've currently been running with 0 successful continuous days of
+**I've currently been running with 2 successful continuous days of
 use.**
 
 Don't use it. Really.

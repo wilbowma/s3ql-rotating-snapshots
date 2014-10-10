@@ -84,9 +84,10 @@ debug(){
 # Abort entire script if any command fails
 set -e
 dropbox_ready(){
+  debug "Is dropbox running?"
   if $DROPBOX running; then
-    echo "Dropbox should have been running"
-    exit 9
+    debug "Starting Dropbox"
+    $DROPBOX start
   fi
   while $DROPBOX status | grep -e "Starting" -e "Connecting" > /dev/null; do
     sleep 5
@@ -115,12 +116,6 @@ if [ ! -d $BACKUP ]; then
 fi
 
 if $UNSAFE_IM_REALLY_STUPID; then
-
-  debug "Is dropbox running?"
-  if $DROPBOX running; then
-    debug "Starting Dropbox"
-    $DROPBOX start
-  fi
 
   debug "Is filesystem ready?"
   fs_sync
