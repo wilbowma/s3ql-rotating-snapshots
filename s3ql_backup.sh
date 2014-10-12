@@ -222,10 +222,6 @@ cd "$MOUNT/$HOSTNAME/$INTERVAL"
 # installed an S3QL package for your distribution, this script *may*
 # be installed, and it *may* also not have the .py ending.
 
-if $UNSAFE_IM_REALLY_STUPID; then
-  $CP .expire_backups.dat .expire_backups.dat.bak
-fi
-
 $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID; then
