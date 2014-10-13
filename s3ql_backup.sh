@@ -7,15 +7,6 @@ BACKUPURI="local://$BACKUP"
 MOUNT="/tmp/s3ql_backup_$$"
 MOUNTOPTS="--compress lzma-9"
 
-# Interval should be a rotating interval, such as "hourly" "daily" etc.
-# Can be given on the commandline
-INTERVAL=${INTERVAL:-"daily"}
-EXPIREPYOPTS=${EXPIREPYOPTS:-1 3 7 14 31 60 90 180 360}
-
-# Machine should be a unique name if you are using Dropbox sync, or if
-# you want to rotate snapshots for different machines separately.
-HOSTNAME="`hostname`"
-
 ### If you want to use this script with multiple machines accessing a
 ### single filesystem that is synced over dropbox, you need to read the
 ### disclaimers below about the "Dropbox lock protocol". Then set this
@@ -66,12 +57,68 @@ copy_files(){
   popd
 }
 
-debug(){
-  echo $1
-}
 # ========================================================================
 # End of configuration
 # ========================================================================
+
+usage(){
+cat << EOF
+Usage: ${0} [OPTION]... [INTERVAL] [EXPIREOPTS]
+
+  INTERVAL should be a string naming a separately expired interval.
+  EXPIREOPTS should be a list of numbers which will be passed to expire_backups.py
+
+  -m    A string representation the hostname, used to create a separately expired set of intervals for each host. Defaults to '\$HOSTNAME' or 'hostname'.
+  -n    Generate expire options using 'seq 1 n', where n is given by this option.
+  -v    Enable verbose output messages.
+  -h    Prints this message, silly.
+
+EOF
+}
+
+verbose(){
+  if $VERBOSE; then
+    echo $1
+  fi
+}
+
+
+error(){
+  echo "${0}: ERROR: ${1}">&2
+  exit $2
+}
+
+parse_arguments(){
+  VERBOSE=false
+  HOSTNAME=${HOSTNAME:-"`hostname`"}
+  EXPIREPYOPTS=${EXPIREPYOPTS:-1 3 7 14 31 60 90 180 360}
+
+  local TEMP
+  TEMP=`getopt -o m:n:vh --long ,,,help -n "${0}" -- "${@}"`
+
+  if [ $? != 0 ] ; then error "Parsing arguments failed" 2 ; fi
+
+  eval set -- "$TEMP"
+
+  while true ; do
+    case "$1" in
+      -m) HOSTNAME="${2}" ; shift 2 ;;
+      -n) EXPIREPYOPTS="`seq 1 $2`" ; shift 2 ;;
+      -v) VERBOSE=true ; shift ;;
+      -h|--help) usage ; exit 0 ;;
+      --) shift ; break ;;
+      *) echo "Invalid argument: ${1}" ; exit 3 ;;
+    esac
+  done
+  verbose "HOSTNAME set to \"$HOSTNAME\""
+  INTERVAL="$1"
+  verbose "INTERVAL set to \"$INTERVAL\""
+  EXPIREPYOPTS=${EXPIREPYOPTS:-"${@}"}
+  verbose "EXPIREPYOPTS set to \"$EXPIREPYOPTS\""
+  return 0
+}
+
+parse_arguments "${@}"
 
 # Dropbox lock protocol. A hand rolled protocol to obtain agreement by
 # multiple machines, via a lock file stored on dropbox, that this
@@ -84,9 +131,9 @@ debug(){
 # Abort entire script if any command fails
 set -e
 dropbox_ready(){
-  debug "Is dropbox running?"
+  verbose "Is dropbox running?"
   if $DROPBOX running; then
-    debug "Starting Dropbox"
+    verbose "Starting Dropbox"
     $DROPBOX start
   fi
   while $DROPBOX status | grep -e "Starting" -e "Connecting" > /dev/null; do
@@ -111,13 +158,12 @@ fs_sync(){
 }
 
 if [ ! -d $BACKUP ]; then
-  echo "Backup dir doesn't exist"
-  exit 6
+  error "Backup dir doesn't exist" 6
 fi
 
 if $UNSAFE_IM_REALLY_STUPID; then
 
-  debug "Is filesystem ready?"
+  verbose "Is filesystem ready?"
   fs_sync
 
   if [ ! -e $LOCKFILE ]; then
@@ -125,15 +171,14 @@ if $UNSAFE_IM_REALLY_STUPID; then
   fi
 
   if [ ! "`find $BACKUP -iname '*conflicted copy*' -and -not -iname 'lock*'`" = "" ]; then
-    echo "There are conflicts. Some went wrong on previous run. Remove conflicts and fsck manually."
-    exit 10
+    error "There are conflicts. Some went wrong on previous run. Remove conflicts and fsck manually." 10
   fi
 
   RETRY=0
   FLAG=0
   while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
     let "RETRY+=1"
-    debug "Waiting for lock to sync"
+    verbose "Waiting for lock to sync"
     lock_sync
     if [ ! -s $LOCKFILE ]; then
       echo "$HOSTNAME$$" > $LOCKFILE
@@ -146,16 +191,15 @@ if $UNSAFE_IM_REALLY_STUPID; then
         FLAG=1
       fi
     else
-      debug "Lock file not empty"
+      verbose "Lock file not empty"
       sleep $WAITTIME
     fi
   done
 
   if [ "$FLAG" -eq "0" ]; then
-    echo "Couldn't obtain a lock"
-    exit 8
+    error "Couldn't obtain a lock" 8
   fi
-  debug "Got a lock!"
+  verbose "Got a lock!"
 
   fs_sync
 
@@ -168,8 +212,7 @@ fi
 $S3QLFSCK --batch "$BACKUPURI"
 
 if [ -d $MOUNT ]; then
-  echo "Mount point exists and shouldn't"
-  exit 2
+  error "Mount point exists and shouldn't" 2
 fi
 
 # Create a temporary MOUNT and mount file system
