@@ -60,8 +60,6 @@ don't run the script at exactly the same time, so the obvious solution
 is to simply offset your cron jobs. But that's unsatisfying so I'm
 trying to fix it.
 
-**I've currently been running successfully since Oct. 7 2014.**
-
 Don't use it. Really.
 
 But please feel free to play with it, tell me how the protocol is
