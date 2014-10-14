@@ -26,9 +26,9 @@ one invocation, and `daily` in another.
 The backups under each interval are rotated separately, and can have
 different expiration options. The expiration options can be set either
 by passing a list of number as the final implicit argument, or using the
-`-n` flag. These expiration options are passed to `expire_python.py`, so
+`-n` flag. These expiration options are passed to `expire_backups.py`, so
 see the [s3ql documentation](http://www.rath.org/s3ql-docs/contrib.html)
-for how to use `expire_python.py`.
+for how to use `expire_backups.py`.
 
 The file `crontab` contains an example of invoking `s3ql_backup.sh` with
 an `hourly` and `daily` interval, with different expiration options.
