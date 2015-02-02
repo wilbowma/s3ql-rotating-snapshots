@@ -144,7 +144,7 @@ dropbox_ready(){
 lock_sync(){
   sleep 2
   dropbox_ready
-   while $DROPBOX filestatus $LOCKFILE | grep syncing > /dev/null; do
+   while $DROPBOX filestatus $LOCKFILE | grep -v "up to date" > /dev/null; do
     sleep 5
   done
 }
@@ -152,7 +152,7 @@ lock_sync(){
 fs_sync(){
   sleep 2
   dropbox_ready
-  while $DROPBOX filestatus $BACKUP | grep syncing > /dev/null; do
+  while $DROPBOX filestatus $BACKUP | grep -v "up to date" > /dev/null; do
     sleep 5
   done
 }
@@ -203,8 +203,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
 
   fs_sync
 
-  $DROPBOX stop
-  trap "echo -n '' > $LOCKFILE; $DROPBOX start" EXIT
+  trap "echo -n '' > $LOCKFILE" EXIT
 fi
 
 
@@ -222,11 +221,7 @@ $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 # Make sure the file system is unmounted when we are done
 # Note that this overwrites the earlier trap, so we
 # also delete the lock file here.
-if $UNSAFE_IM_REALLY_STUPID; then
-  trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'; $DROPBOX start" EXIT
-else
-  trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
-fi
+trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
 
 $MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
 cd "$MOUNT/$HOSTNAME/$INTERVAL"
@@ -269,14 +264,12 @@ $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID; then
   cd /
-  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'; $DROPBOX start" EXIT
+  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
   $S3QLCTRL upload-meta "$MOUNT"
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
   $S3QLUMOUNT "$MOUNT"
-  trap "$RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'; $DROPBOX start" EXIT
-
-  $DROPBOX start
+  trap "$RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
 
   echo "Waiting for sync..."
   fs_sync
