@@ -39,7 +39,7 @@ MV=mv
 MKDIR=mkdir
 RMDIR=rmdir
 
-RSYNCOPTS="-aHAXxvr --partial --delete --delete-excluded"
+RSYNCOPTS="-aHAXxvr --partial --delete-during --delete-excluded"
 
 ### Copy commands
 copy_files(){
