@@ -2,28 +2,31 @@
 
 ### Configs
 #HOME="~"
-BACKUP="$HOME/Dropbox/.backups"
+BACKUP="$HOME/.backups"
 BACKUPURI="local://$BACKUP"
 MOUNT="/tmp/s3ql_backup_$$"
 MOUNTOPTS="--compress lzma-9"
 
 ### If you want to use this script with multiple machines accessing a
-### single filesystem that is synced over dropbox, you need to read the
+### single filesystem that is synced over Unison, you need to read the
 ### disclaimers below about the "Dropbox lock protocol". Then set this
 ### flag to true.
 
 ### If you just want to use this script, extended with the
 ### machine/interval features, don't touch this.
 UNSAFE_IM_REALLY_STUPID=false
+SERVER=false
+CLIENT=false
+UNISON_PROFILE=s3ql-backup
+UNISON_OPTS=""
 
-# Configure for dropbox sync/lock protocol
+# Configure for Unison sync/lock protocol
 LOCKFILE="$BACKUP/lock"
-MAXRETRY=3
-WAITTIME=300
+MAXRETRY=10
+WAITTIME=30
 
 ### Executables
 PYTHON2=python2
-DROPBOX="`dirname \"$0\"`/dropbox.sh"
 EXPIREPY="`dirname \"$0\"`/expire_backups.py"
 S3QLMOUNT=mount.s3ql
 S3QLUMOUNT=umount.s3ql
@@ -38,6 +41,7 @@ CP=cp
 MV=mv
 MKDIR=mkdir
 RMDIR=rmdir
+UNISON=unison
 
 RSYNCOPTS="-aHAXxvr --partial --delete-during --delete-excluded"
 
@@ -120,9 +124,11 @@ parse_arguments(){
 
 parse_arguments "${@}"
 
-# Dropbox lock protocol. A hand rolled protocol to obtain agreement by
-# multiple machines, via a lock file stored on dropbox, that this
-# machine is the only one mounting the s3ql filesystem.
+UNISON_OPTS="$UNISON_OPTS$(if $VERBOSE; then echo ""; else echo " -silent"; fi)"
+
+# Unison lock protocol. A hand rolled protocol to obtain agreement by
+# multiple machines, that this machine is the only one mounting the s3ql
+# filesystem.
 
 # TODO XXX HACK NB
 # This protocol is totally suspect. It probably doesn't work. Don't use
@@ -130,69 +136,59 @@ parse_arguments "${@}"
 
 # Abort entire script if any command fails
 set -e
-dropbox_ready(){
-  verbose "Is dropbox running?"
-  if $DROPBOX running; then
-    verbose "Starting Dropbox"
-    $DROPBOX start
-  fi
-  while $DROPBOX status | grep -e "Starting" -e "Connecting" > /dev/null; do
-    sleep 5
-  done
-}
-
-lock_sync(){
-  sleep 2
-  dropbox_ready
-   while $DROPBOX filestatus $LOCKFILE | grep -v "up to date" > /dev/null; do
-    sleep 5
-  done
-}
-
-fs_sync(){
-  sleep 2
-  dropbox_ready
-  while $DROPBOX filestatus $BACKUP | grep -v "up to date" > /dev/null; do
-    sleep 5
-  done
-}
 
 if [ ! -d $BACKUP ]; then
   error "Backup dir doesn't exist" 6
 fi
 
-if $UNSAFE_IM_REALLY_STUPID; then
+unison_sync(){
+  if $CLIENT; then
+    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch
+  fi
+}
 
-  verbose "Is filesystem ready?"
-  fs_sync
+sync_lock(){
+  if $CLIENT; then
+    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch -path $(basename $LOCKFILE) -prefer newer
+  fi
+}
+
+locktrap(){
+  echo -n '' > $LOCKFILE
+  sync_lock
+}
+
+if $UNSAFE_IM_REALLY_STUPID; then
+  if (! ($CLIENT || $SERVER)) || ($CLIENT && $SERVER); then
+    error "You have to choose; set SERVER xor CLIENT" 1
+  fi
+
+  verbose "Greedily grab the Lock"
 
   if [ ! -e $LOCKFILE ]; then
     touch $LOCKFILE
-  fi
-
-  if [ ! "`find $BACKUP -iname '*conflicted copy*' -and -not -iname 'lock*'`" = "" ]; then
-    error "There are conflicts. Some went wrong on previous run. Remove conflicts and fsck manually." 10
   fi
 
   RETRY=0
   FLAG=0
   while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
     let "RETRY+=1"
-    verbose "Waiting for lock to sync"
-    lock_sync
     if [ ! -s $LOCKFILE ]; then
       echo "$HOSTNAME$$" > $LOCKFILE
-      trap "echo -n '' > $LOCKFILE" EXIT
-      lock_sync
+
+      sync_lock
+
       if ! cat $LOCKFILE | grep "$HOSTNAME$$" > /dev/null; then
-        echo "Invalid lockfile string"
+        verbose "Invalid lockfile string"
         sleep $WAITTIME
+        sync_lock
       else
         FLAG=1
       fi
     else
       verbose "Lock file not empty"
       sleep $WAITTIME
+      sync_lock
     fi
   done
 
@@ -200,10 +196,8 @@ if $UNSAFE_IM_REALLY_STUPID; then
     error "Couldn't obtain a lock" 8
   fi
   verbose "Got a lock!"
-
-  fs_sync
-
-  trap "echo -n '' > $LOCKFILE" EXIT
+  trap "locktrap" EXIT
+  unison_sync
 fi
 
 
@@ -221,7 +215,7 @@ $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 # Make sure the file system is unmounted when we are done
 # Note that this overwrites the earlier trap, so we
 # also delete the lock file here.
-trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; locktrap" EXIT
 
 $MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
 cd "$MOUNT/$HOSTNAME/$INTERVAL"
@@ -262,20 +256,18 @@ cd "$MOUNT/$HOSTNAME/$INTERVAL"
 
 $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
-if $UNSAFE_IM_REALLY_STUPID; then
+if $UNSAFE_IM_REALLY_STUPID && $CLIENT; then
   cd /
-  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; locktrap" EXIT
   $S3QLCTRL upload-meta "$MOUNT"
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
   $S3QLUMOUNT "$MOUNT"
-  trap "$RMDIR '$MOUNT'; echo -n '' > '$LOCKFILE'" EXIT
+  trap "$RMDIR '$MOUNT'; locktrap" EXIT
 
-  echo "Waiting for sync..."
-  fs_sync
+  verbose "Waiting for sync..."
+  unison_sync
 
-  echo -n '' > "$LOCKFILE"
+  locktrap
   trap "$RMDIR '$MOUNT'" EXIT
-
-  fs_sync
 fi
