@@ -1,0 +1,12 @@
+# Unison preferences
+label = The root of my S3QL backup filesystem.
+root = /home/user/.backups
+root = ssh://user@server.com/.backups
+sshargs = -i /home/user/.ssh/id_backup -C -oCompressionLevel=9
+
+ignore = Name *copy: conflict*
+prefer = newer
+copyonconflict = true
+# Copy threshold might help speed up file transfers on large files.
+# copythreshold = 0
+# copythreshold = 5 # MB
