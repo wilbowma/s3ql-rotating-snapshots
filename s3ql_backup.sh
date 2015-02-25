@@ -6,7 +6,7 @@ BACKUP="$HOME/.backups"
 BACKUPURI="local://$BACKUP"
 MOUNT="/tmp/s3ql_backup_$$"
 # 100MB cache should be sufficient for a local backend
-MOUNTOPTS="--compress lzma-9 --cachesize 97656.25"
+MOUNTOPTS="--compress lzma-9 --cachesize 97656"
 
 ### If you want to use this script with multiple machines accessing a
 ### single filesystem that is synced over Unison, you need to read the
