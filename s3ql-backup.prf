@@ -5,6 +5,9 @@ root = ssh://user@server.com/.backups
 sshargs = -i /home/user/.ssh/id_backup -C -oCompressionLevel=9
 
 ignore = Name *copy: conflict*
+# You may want to enable this to reduce transfer times
+# You can make Unison keep backups of these locally
+# ignore = Name s3ql_metadata_bak*
 prefer = newer
 copyonconflict = true
 # Copy threshold might help speed up file transfers on large files.

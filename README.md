@@ -51,15 +51,15 @@ However, many of my machines have common files (config file, git repos,
 etc), so multiple file systems really prevented optimal use of data
 deduplication.
 
-This feature enables a single s3ql file system, synchronized over
+This feature enables a single s3ql file system, synchronized via
 Unison, to be used by multiple machines. This feature includes an
 ad-hoc protocol to ensure only one machine mounts the file system at a
 time.
 
-The current protocol seems to work in practice so long as two machines
-don't run the script at exactly the same time, so the obvious solution
-is to simply offset your cron jobs. But that's unsatisfying so I'm
-trying to fix it.
+The current protocol seems to work in practice. I've been using it for
+several months and have not corrupted the s3ql file-system yet.
+However, when files are in conflict, files are created that seem to
+stall s3ql, which can prevent backups from happening on schedule.
 
 Don't use it. Really.
 

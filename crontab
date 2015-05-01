@@ -1,12 +1,17 @@
 # keep hourly snapshots for the last 24 hours
 # TODO: Does expire_backups.py start counting at 0?
-@hourly  /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 24 hourly
+@hourly  /usr/bin/lockrun -w 600 -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 24 hourly
 
 # keep daily snapshots for the past week
-@daily  /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 7 daily
+@daily  /usr/bin/lockrun -w 600 -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 7 daily
 
 # keep weekly snapshots for the past month
-@weekly /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 4 weekly
+@weekly /usr/bin/lockrun -w 600 -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 4 weekly
 
 # keep month snapshots for the past year
-@monthly /usr/bin/lockrun -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 12 monthly
+@monthly /usr/bin/lockrun -w 600 -n /tmp/lock.backup ~/bin/s3ql_backup.sh -n 12 monthly
+
+# Delete conflict files every month.
+@monthly find ~/.backups -iname "*copy: conflict*" -delete
+
+# TODO: Yearly backups?
