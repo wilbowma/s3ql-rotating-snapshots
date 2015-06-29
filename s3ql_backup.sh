@@ -18,6 +18,7 @@ UNSAFE_IM_REALLY_STUPID=false
 SERVER=false
 CLIENT=false
 UNISON_PROFILE=s3ql-backup
+UNISON_REMOTE_ROOT="ssh://user@example.com/backups"
 UNISON_OPTS=""
 
 # Configure for Unison sync/lock protocol
@@ -149,7 +150,8 @@ unison_sync(){
 
 sync_lock(){
   if $CLIENT; then
-    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch -path $(basename $LOCKFILE) -prefer newer
+    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch -path\
+      $(basename $LOCKFILE) -prefer $UNISON_REMOTE_ROOT
   fi
 }
 
