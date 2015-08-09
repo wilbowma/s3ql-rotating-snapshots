@@ -57,7 +57,7 @@ copy_files(){
   $RSYNC $RSYNCOPTS \
     --include-from "$HOME/backup.lst" \
     "$HOME/" \
-    "./home"
+    "./home" || true
 
   popd
 }
@@ -155,8 +155,12 @@ sync_lock(){
   fi
 }
 
-locktrap(){
+clear_lock(){
   echo -n '' > $LOCKFILE
+}
+
+release_lock(){
+  clear_lock
   sync_lock
 }
 
@@ -177,6 +181,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
     let "RETRY+=1"
     if [ ! -s $LOCKFILE ]; then
       echo "$HOSTNAME$$" > $LOCKFILE
+      trap "clear_lock" EXIT
 
       sync_lock
 
@@ -198,8 +203,11 @@ if $UNSAFE_IM_REALLY_STUPID; then
     error "Couldn't obtain a lock" 8
   fi
   verbose "Got a lock!"
-  trap "locktrap" EXIT
+  trap "release_lock" EXIT
   unison_sync
+
+  # Move conflicted files
+  find $BACKUP -iname "*copy: conflict*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts \;
 fi
 
 
@@ -217,7 +225,7 @@ $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 # Make sure the file system is unmounted when we are done
 # Note that this overwrites the earlier trap, so we
 # also delete the lock file here.
-trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; locktrap" EXIT
+trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
 
 $MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
 cd "$MOUNT/$HOSTNAME/$INTERVAL"
@@ -260,16 +268,16 @@ $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
 
 if $UNSAFE_IM_REALLY_STUPID && $CLIENT; then
   cd /
-  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; locktrap" EXIT
+  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
   $S3QLCTRL upload-meta "$MOUNT"
   $S3QLCTRL flushcache "$MOUNT"
   # s3ql umount will block until copies/uploads are complete.
   $S3QLUMOUNT "$MOUNT"
-  trap "$RMDIR '$MOUNT'; locktrap" EXIT
+  trap "$RMDIR '$MOUNT'; release_lock" EXIT
 
   verbose "Waiting for sync..."
   unison_sync
 
-  locktrap
+  release_lock
   trap "$RMDIR '$MOUNT'" EXIT
 fi
