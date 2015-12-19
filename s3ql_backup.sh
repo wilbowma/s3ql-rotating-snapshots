@@ -207,7 +207,7 @@ if $UNSAFE_IM_REALLY_STUPID; then
   unison_sync
 
   # Move conflicted files
-  find $BACKUP -iname "*copy: conflict*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts \;
+  find $BACKUP -iname "*copy: conflict*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts/ \;
 fi
 
 
