@@ -28,7 +28,7 @@ WAITTIME=30
 
 ### Executables
 PYTHON2=python2
-EXPIREPY="`dirname \"$0\"`/expire_backups.py"
+EXPIREPY="/usr/share/doc/s3ql/contrib/expire_backups.py"
 S3QLMOUNT=mount.s3ql
 S3QLUMOUNT=umount.s3ql
 S3QLFSCK=fsck.s3ql
