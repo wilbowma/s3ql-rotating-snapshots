@@ -67,5 +67,4 @@ But please feel free to play with it, tell me how the protocol is
 broken, or help me fix it.
 
 ##License
-Large chunks of `s3ql_backup.sh` and the entirety of `expire_backups.py`
-are copied verbatim from the s3ql project. See `LICENSE`.
+Large chunks of `s3ql_backup.sh` are copied verbatim from the s3ql project. See `LICENSE`.
