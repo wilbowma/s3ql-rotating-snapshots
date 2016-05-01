@@ -54,7 +54,10 @@ copy_files(){
 
   pushd "$new_backup"
 
-  mkdir ./pacman-local/
+  mkdir -p ./pacman-local/etc
+  cp /etc/pacman.conf ./pacman-local/etc/pacman.conf
+  cp /etc/makepkg.conf ./pacman-local/etc/makepkg.conf
+  cp /etc/yaourtrc ./pacman-local/etc/yaourtrc
   echo "# Pipe to pacman -S to reinstall" > ./pacman-local/pacman.lst
   pacman -Qenq >> ./pacman-local/pacman.lst
   echo "# Pipe to yaourt -S to reinstall" > ./pacman-local/yaourt.lst
