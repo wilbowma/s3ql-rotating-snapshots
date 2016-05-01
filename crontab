@@ -14,6 +14,6 @@
 @monthly /usr/bin/lockrun -w 2400 /tmp/lock.backup ~/bin/s3ql_backup.sh -n 12 monthly
 
 # Delete conflict files every month.
-@monthly find ~/.backups -iname "*copy: conflict*" -delete
+@monthly find ~/.backups -iname "(conflict * on*" -delete
 
 # TODO: Yearly backups?
