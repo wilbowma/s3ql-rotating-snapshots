@@ -54,6 +54,12 @@ copy_files(){
 
   pushd "$new_backup"
 
+  mkdir ./pacman-local/
+  echo "# Pipe to pacman -S to reinstall" > ./pacman-local/pacman.lst
+  pacman -Qenq >> ./pacman-local/pacman.lst
+  echo "# Pipe to yaourt -S to reinstall" > ./pacman-local/yaourt.lst
+  pacman -Qemq >> ./pacman-local/yaourt.lst
+
   $RSYNC $RSYNCOPTS \
     --include-from "$HOME/backup.lst" \
     "$HOME/" \
