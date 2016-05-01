@@ -44,7 +44,7 @@ MKDIR=mkdir
 RMDIR=rmdir
 UNISON=unison
 
-RSYNCOPTS="-aHAXxvr --partial --delete-during --delete-excluded"
+RSYNCOPTS="-aHAXxrS --partial --delete-during --delete-excluded"
 
 ### Copy commands
 copy_files(){
@@ -115,6 +115,9 @@ parse_arguments(){
       *) echo "Invalid argument: ${1}" ; exit 3 ;;
     esac
   done
+  if $VERBOSE; then
+      RSYNCOPTS="$RSYNCOPTS -v"
+  fi
   verbose "HOSTNAME set to \"$HOSTNAME\""
   INTERVAL="$1"
   verbose "INTERVAL set to \"$INTERVAL\""
