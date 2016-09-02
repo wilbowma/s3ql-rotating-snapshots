@@ -142,7 +142,8 @@ main(){
   done
   if $VERBOSE; then
       RSYNCOPTS="$RSYNCOPTS -v"
-      UNISON_OPTS="$UNISON_OPTS$(if $VERBOSE; then echo ""; else echo " -silent"; fi)"
+  else
+      UNISON_OPTS="$UNISON_OPTS -silent"
   fi
   verbose "HOSTNAME set to \"$HOSTNAME\""
   INTERVAL="$1"
@@ -307,12 +308,12 @@ do_backup() {
 
   # Figure out the most recent backup
   last_backup=`$PYTHON2 <<EOF
-  import os
-  import re
-  backups=sorted(x for x in os.listdir('.') if re.match(r'^[\\d-]{10}_[\\d:]{8}$', x))
-  if backups:
-      print backups[-1]
-  EOF`
+import os
+import re
+backups=sorted(x for x in os.listdir('.') if re.match(r'^[\\d-]{10}_[\\d:]{8}$', x))
+if backups:
+    print backups[-1]
+EOF`
   
   # Duplicate the most recent backup unless this is the first backup
   new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
