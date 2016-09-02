@@ -82,10 +82,12 @@ Usage: ${0} [OPTION]... [INTERVAL] [EXPIREOPTS]
   INTERVAL should be a string naming a separately expired interval.
   EXPIREOPTS should be a list of numbers which will be passed to expire_backups.py
 
-  -m    A string representation the hostname, used to create a separately expired set of intervals for each host. Defaults to '\$HOSTNAME' or 'hostname'.
-  -n    Generate expire options using 'seq 1 n', where n is given by this option.
-  -v    Enable verbose output messages.
-  -h    Prints this message, silly.
+  -m        A string representation the hostname, used to create a separately expired set of intervals for each host. Defaults to '\$HOSTNAME' or 'hostname'.
+  -n        Generate expire options using 'seq 1 n', where n is given by this option.
+  -v        Enable verbose output messages.
+  -h        Prints this message, silly.
+  --mount   Manually mount the backup filesystem. If distributed protocol is enabled, synchronizes and locks the filesystem first.
+  --unmount Manually unmount the backup filesystem. If distributed protocol is enabled, synchronizes and unlocks the filesystem after.
 
 EOF
 }
@@ -96,19 +98,31 @@ verbose(){
   fi
 }
 
-
 error(){
   echo "${0}: ERROR: ${1}">&2
   exit $2
 }
 
-parse_arguments(){
+main(){
+  if [ ! -d $BACKUP ]; then
+    error "Backup dir doesn't exist" 6
+  fi
+
   VERBOSE=false
   HOSTNAME=${HOSTNAME:-"`hostname`"}
   EXPIREPYOPTS=${EXPIREPYOPTS:-1 3 7 14 31 60 90 180 360}
 
+  local MOUNT_AND_RETURN
+  MOUNT_AND_RETURN=false
+
+  local UNMOUNT_AND_RETURN
+  UNMOUNT_AND_RETURN=false
+
+  local DO_BACKUP
+  DO_BACKUP=true
+
   local TEMP
-  TEMP=`getopt -o m:n:vh --long ,,,help -n "${0}" -- "${@}"`
+  TEMP=`getopt -o m:n:vh -l help,mount,unmount -n "${0}" -- "${@}"`
 
   if [ $? != 0 ] ; then error "Parsing arguments failed" 2 ; fi
 
@@ -120,24 +134,43 @@ parse_arguments(){
       -n) EXPIREPYOPTS="`seq 1 $2`" ; shift 2 ;;
       -v) VERBOSE=true ; shift ;;
       -h|--help) usage ; exit 0 ;;
+      --mount) MOUNT_AND_RETURN=true ; shift ;;
+      --unmount) UNMOUNT_AND_RETURN=true ; shift ;;
       --) shift ; break ;;
       *) echo "Invalid argument: ${1}" ; exit 3 ;;
     esac
   done
   if $VERBOSE; then
       RSYNCOPTS="$RSYNCOPTS -v"
+      UNISON_OPTS="$UNISON_OPTS$(if $VERBOSE; then echo ""; else echo " -silent"; fi)"
   fi
   verbose "HOSTNAME set to \"$HOSTNAME\""
   INTERVAL="$1"
   verbose "INTERVAL set to \"$INTERVAL\""
   EXPIREPYOPTS=${EXPIREPYOPTS:-"${@}"}
   verbose "EXPIREPYOPTS set to \"$EXPIREPYOPTS\""
+
+  if $MOUNT_AND_RETURN && $UNMOUNT_AND_RETURN; then
+      error "--mount and --unmount are mutually exclusive." 9
+  fi
+
+  if $MOUNT_AND_RETURN; then
+      DO_BACKUP=false
+      mount_and_return
+      echo "Mounted at $MOUNT"
+  fi
+
+  if $UNMOUNT_AND_RETURN; then
+      DO_BACKUP=false
+      MOUNT="/tmp/s3ql_backup_$(tr -d "$HOSTNAME" < $LOCKFILE)"
+      unmount_and_return
+  fi
+
+  if $DO_BACKUP; then
+      backup
+  fi
   return 0
 }
-
-parse_arguments "${@}"
-
-UNISON_OPTS="$UNISON_OPTS$(if $VERBOSE; then echo ""; else echo " -silent"; fi)"
 
 # Unison lock protocol. A hand rolled protocol to obtain agreement by
 # multiple machines, that this machine is the only one mounting the s3ql
@@ -146,13 +179,6 @@ UNISON_OPTS="$UNISON_OPTS$(if $VERBOSE; then echo ""; else echo " -silent"; fi)"
 # TODO XXX HACK NB
 # This protocol is totally suspect. It probably doesn't work. Don't use
 # it. Srsly.
-
-# Abort entire script if any command fails
-set -e
-
-if [ ! -d $BACKUP ]; then
-  error "Backup dir doesn't exist" 6
-fi
 
 unison_sync(){
   if $CLIENT; then
@@ -176,120 +202,148 @@ release_lock(){
   sync_lock
 }
 
-if $UNSAFE_IM_REALLY_STUPID; then
-  if (! ($CLIENT || $SERVER)) || ($CLIENT && $SERVER); then
-    error "You have to choose; set SERVER xor CLIENT" 1
-  fi
+aquire_filesystem(){
+  if $UNSAFE_IM_REALLY_STUPID; then
+    if (! ($CLIENT || $SERVER)) || ($CLIENT && $SERVER); then
+      error "You have to choose; set SERVER xor CLIENT" 1
+    fi
 
-  verbose "Greedily grab the Lock"
+    verbose "Greedily grab the Lock"
 
-  if [ ! -e $LOCKFILE ]; then
-    touch $LOCKFILE
-  fi
+    if [ ! -e $LOCKFILE ]; then
+      touch $LOCKFILE
+    fi
 
-  RETRY=0
-  FLAG=0
-  while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
-    let "RETRY+=1"
-    if [ ! -s $LOCKFILE ]; then
-      echo "$HOSTNAME$$" > $LOCKFILE
-      trap "clear_lock" EXIT
+    RETRY=0
+    FLAG=0
+    while [[ "$RETRY" -le "$MAXRETRY"  &&  "$FLAG" -eq "0" ]]; do
+      let "RETRY+=1"
+      if [ ! -s $LOCKFILE ]; then
+        echo "$HOSTNAME$$" > $LOCKFILE
+        trap "clear_lock" EXIT
 
-      sync_lock
+        sync_lock
 
-      if ! cat $LOCKFILE | grep "$HOSTNAME$$" > /dev/null; then
-        verbose "Invalid lockfile string"
+        if ! cat $LOCKFILE | grep "$HOSTNAME$$" > /dev/null; then
+          verbose "Invalid lockfile string"
+          sleep $WAITTIME
+          sync_lock
+        else
+          FLAG=1
+        fi
+      else
+        verbose "Lock file not empty"
         sleep $WAITTIME
         sync_lock
-      else
-        FLAG=1
       fi
-    else
-      verbose "Lock file not empty"
-      sleep $WAITTIME
-      sync_lock
+    done
+
+    if [ "$FLAG" -eq "0" ]; then
+      error "Couldn't obtain a lock" 8
     fi
-  done
+    verbose "Got a lock!"
+    trap "release_lock" EXIT
+    unison_sync
 
-  if [ "$FLAG" -eq "0" ]; then
-    error "Couldn't obtain a lock" 8
+    # Move conflicted files
+    find $BACKUP -iname "*(conflict * on*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts/ \;
   fi
-  verbose "Got a lock!"
-  trap "release_lock" EXIT
-  unison_sync
+}
 
-  # Move conflicted files
-  find $BACKUP -iname "*(conflict * on*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts/ \;
-fi
+mount() {
+  aquire_filesystem
+  # Recover cache if e.g. system was shut down while fs was mounted
+  $S3QLFSCK --batch "$BACKUPURI"
 
+  if [ -d $MOUNT ]; then
+    error "Mount point exists and shouldn't" 2
+  fi
 
-# Recover cache if e.g. system was shut down while fs was mounted
-$S3QLFSCK --batch "$BACKUPURI"
+  # Create a temporary MOUNT and mount file system
+  $MKDIR -p "$MOUNT"
+  $S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
 
-if [ -d $MOUNT ]; then
-  error "Mount point exists and shouldn't" 2
-fi
+  # Make sure the file system is unmounted when we are done
+  # Note that this overwrites the earlier trap, so we
+  # also delete the lock file here.
+  trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
+}
 
-# Create a temporary MOUNT and mount file system
-$MKDIR -p "$MOUNT"
-$S3QLMOUNT $MOUNTOPTS "$BACKUPURI" "$MOUNT"
+mount_and_return(){
+  mount
+  trap "" EXIT
+}
 
-# Make sure the file system is unmounted when we are done
-# Note that this overwrites the earlier trap, so we
-# also delete the lock file here.
-trap "cd /; $S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
+unmount(){
+  if $UNSAFE_IM_REALLY_STUPID && $CLIENT; then
+    cd /
+    trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
+    $S3QLCTRL upload-meta "$MOUNT"
+    $S3QLCTRL flushcache "$MOUNT"
+    # s3ql umount will block until copies/uploads are complete.
+    $S3QLUMOUNT "$MOUNT"
+    trap "$RMDIR '$MOUNT'; release_lock" EXIT
+  
+    verbose "Waiting for sync..."
+    unison_sync
+  
+    release_lock
+    trap "$RMDIR '$MOUNT'" EXIT
+  else
+    $S3QLUMOUNT "$MOUNT"
+    $RMDIR "$MOUNT"
+    trap "" EXIT
+  fi
+}
 
-$MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
-cd "$MOUNT/$HOSTNAME/$INTERVAL"
+unmount_and_return(){
+  unmount
+}
 
-# Figure out the most recent backup
-last_backup=`$PYTHON2 <<EOF
-import os
-import re
-backups=sorted(x for x in os.listdir('.') if re.match(r'^[\\d-]{10}_[\\d:]{8}$', x))
-if backups:
-    print backups[-1]
-EOF`
+do_backup() {
+  mount
+  $MKDIR -p "$MOUNT/$HOSTNAME/$INTERVAL"
+  cd "$MOUNT/$HOSTNAME/$INTERVAL"
 
-# Duplicate the most recent backup unless this is the first backup
-new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
-if [ -n "$last_backup" ]; then
-  echo "Copying $last_backup to $new_backup..."
-  $S3QLCP "$last_backup" "$new_backup"
+  # Figure out the most recent backup
+  last_backup=`$PYTHON2 <<EOF
+  import os
+  import re
+  backups=sorted(x for x in os.listdir('.') if re.match(r'^[\\d-]{10}_[\\d:]{8}$', x))
+  if backups:
+      print backups[-1]
+  EOF`
+  
+  # Duplicate the most recent backup unless this is the first backup
+  new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
+  if [ -n "$last_backup" ]; then
+    echo "Copying $last_backup to $new_backup..."
+    $S3QLCP "$last_backup" "$new_backup"
+  
+    # Make the last backup immutable
+    # (in case the previous backup was interrupted prematurely)
+    $S3QLLOCK "$last_backup"
+  fi
+  
+  copy_files
+  
+  # Make the new backup immutable
+  $S3QLLOCK "$new_backup"
+  
+  cd "$MOUNT/$HOSTNAME/$INTERVAL"
+  
+  # Expire old backups
+  
+  # Note that expire_backups.py comes from contrib/ and is not installed
+  # by default when you install from the source tarball. If you have
+  # installed an S3QL package for your distribution, this script *may*
+  # be installed, and it *may* also not have the .py ending.
+  
+  $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
+  unmount
+}
 
-  # Make the last backup immutable
-  # (in case the previous backup was interrupted prematurely)
-  $S3QLLOCK "$last_backup"
-fi
+# Abort entire script if any command fails
+set -e
 
-copy_files
-
-# Make the new backup immutable
-$S3QLLOCK "$new_backup"
-
-cd "$MOUNT/$HOSTNAME/$INTERVAL"
-
-# Expire old backups
-
-# Note that expire_backups.py comes from contrib/ and is not installed
-# by default when you install from the source tarball. If you have
-# installed an S3QL package for your distribution, this script *may*
-# be installed, and it *may* also not have the .py ending.
-
-$EXPIREPY --use-s3qlrm $EXPIREPYOPTS
-
-if $UNSAFE_IM_REALLY_STUPID && $CLIENT; then
-  cd /
-  trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
-  $S3QLCTRL upload-meta "$MOUNT"
-  $S3QLCTRL flushcache "$MOUNT"
-  # s3ql umount will block until copies/uploads are complete.
-  $S3QLUMOUNT "$MOUNT"
-  trap "$RMDIR '$MOUNT'; release_lock" EXIT
-
-  verbose "Waiting for sync..."
-  unison_sync
-
-  release_lock
-  trap "$RMDIR '$MOUNT'" EXIT
-fi
+main "${@}"
