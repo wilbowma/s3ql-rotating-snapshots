@@ -167,7 +167,7 @@ main(){
   fi
 
   if $DO_BACKUP; then
-      backup
+      do_backup
   fi
   return 0
 }
