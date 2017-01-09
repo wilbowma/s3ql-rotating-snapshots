@@ -189,7 +189,7 @@ unison_sync(){
 
 sync_lock(){
   if $CLIENT; then
-    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch -path\
+    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch -path \
       $(basename $LOCKFILE) -prefer $UNISON_REMOTE_ROOT
   fi
 }
@@ -243,11 +243,12 @@ aquire_filesystem(){
       error "Couldn't obtain a lock" 8
     fi
     verbose "Got a lock!"
+    find $BACKUP -iname "lock (conflict *on*" -not -path -delete
     trap "release_lock" EXIT
     unison_sync
 
     # Move conflicted files
-    find $BACKUP -iname "*(conflict * on*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts/ \;
+    #find $BACKUP -iname "*(conflict *on*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts/ \;
   fi
 }
 
