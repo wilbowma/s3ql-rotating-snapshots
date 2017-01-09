@@ -39,7 +39,7 @@ function cleanup(){
          -iname "#*#" -or \
          -iname ".#*" -or \
          -iname "y" \
-         \) -and -print -and -delete > $source/stripped/$1.log
+         \) -and -print -and -delete > $1.log
 }
 
 set -e
