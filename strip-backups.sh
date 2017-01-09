@@ -13,11 +13,11 @@ function cleanup(){
          -ipath "*/.Trash-1000/*" -or \
          -ipath "*/.unison/fp*" -or \
          -ipath "*/.unison/ar*" -or \
-         -ipath "*/.emacs.d/elpa*" -or \
-         -ipath "*/.emacs.d/var*" -or \
-         -ipath "*/.emacs.d/auto-save-list*" -or \
-         -ipath "*/.mutt/cache*" -or \
-         -ipath "*/.mutt/sent*" -or \
+         -ipath "*/.emacs.d/elpa/*" -or \
+         -ipath "*/.emacs.d/var/*" -or \
+         -ipath "*/.emacs.d/auto-save-list/*" -or \
+         -ipath "*/.mutt/cache/*" -or \
+         -ipath "*/.mutt/sent/*" -or \
          -iname ".~lock*.odp#" -or \
          -iname "*.agdai" -or \
          -iname "*.hi" -or \
@@ -40,7 +40,8 @@ function cleanup(){
          -iname "*~" -or \
          -iname "#*#" -or \
          -iname ".#*" -or \
-         -iname "y" \
+         -iname "y" -or \
+         -empty \
          \) -and -print -and -delete > $1.log
 }
 
