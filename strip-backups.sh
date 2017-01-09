@@ -5,7 +5,9 @@ BACKUP=`ls --color=never -d /tmp/s3ql_backup_*`
 MACHINES="home work server"
 
 function cleanup(){
+    echo Cleaning $1
     find $1 \
+         \( \
          -ipath "*/.Trash-1000/*" -or \
          -ipath "*/.unison/fp*" -or \
          -ipath "*/.unison/ar*" -or \
@@ -37,7 +39,7 @@ function cleanup(){
          -iname "#*#" -or \
          -iname ".#*" -or \
          -iname "y" \
-         -delete
+         \) -and -delete
 }
 
 set -e
