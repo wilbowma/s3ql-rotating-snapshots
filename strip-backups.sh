@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 rsync="rsync -azh --progress"
-source=/tmp/s3ql_backup_
+source=/tmp/s3ql_backup_*
 target=/tmp/new-backups
-machines=home work server
+MACHINES="home work server"
 
 function cleanup(){
     find $1 \
@@ -37,7 +37,7 @@ function cleanup(){
 
 set -e
 
-for machine in ${MACHINES}; do
+for machine in $MACHINES; do
     for type in yearly monthly weekly daily hourly; do
         first_snapshot=`ls --color=never $source/$machine/$type/ | sort | head -n 1`
         mkdir -p $target/$machine/$type/
