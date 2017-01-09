@@ -291,6 +291,7 @@ unmount(){
     release_lock
     trap "$RMDIR '$MOUNT'" EXIT
   else
+    cd /
     $S3QLUMOUNT "$MOUNT"
     $RMDIR "$MOUNT"
     trap "" EXIT
