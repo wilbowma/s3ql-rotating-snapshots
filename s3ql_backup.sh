@@ -276,22 +276,21 @@ mount_and_return(){
 }
 
 unmount(){
-  if $UNSAFE_IM_REALLY_STUPID && $CLIENT; then
-    cd /
+  cd /
+  if $UNSAFE_IM_REALLY_STUPID; then
     trap "$S3QLUMOUNT '$MOUNT'; $RMDIR '$MOUNT'; release_lock" EXIT
     $S3QLCTRL upload-meta "$MOUNT"
     $S3QLCTRL flushcache "$MOUNT"
     # s3ql umount will block until copies/uploads are complete.
     $S3QLUMOUNT "$MOUNT"
     trap "$RMDIR '$MOUNT'; release_lock" EXIT
-  
+
     verbose "Waiting for sync..."
     unison_sync
-  
+
     release_lock
     trap "$RMDIR '$MOUNT'" EXIT
   else
-    cd /
     $S3QLUMOUNT "$MOUNT"
     $RMDIR "$MOUNT"
     trap "" EXIT
@@ -315,32 +314,32 @@ backups=sorted(x for x in os.listdir('.') if re.match(r'^[\\d-]{10}_[\\d:]{8}$',
 if backups:
     print backups[-1]
 EOF`
-  
+
   # Duplicate the most recent backup unless this is the first backup
   new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
   if [ -n "$last_backup" ]; then
     echo "Copying $last_backup to $new_backup..."
     $S3QLCP "$last_backup" "$new_backup"
-  
+
     # Make the last backup immutable
     # (in case the previous backup was interrupted prematurely)
     $S3QLLOCK "$last_backup"
   fi
-  
+
   copy_files
-  
+
   # Make the new backup immutable
   $S3QLLOCK "$new_backup"
-  
+
   cd "$MOUNT/$HOSTNAME/$INTERVAL"
-  
+
   # Expire old backups
-  
+
   # Note that expire_backups.py comes from contrib/ and is not installed
   # by default when you install from the source tarball. If you have
   # installed an S3QL package for your distribution, this script *may*
   # be installed, and it *may* also not have the .py ending.
-  
+
   $EXPIREPY --use-s3qlrm $EXPIREPYOPTS
   unmount
 }
