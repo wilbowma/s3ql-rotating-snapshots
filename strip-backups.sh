@@ -1,8 +1,7 @@
 #!/bin/bash
 
 rsync="rsync -azh --progress"
-source=/tmp/s3ql_backup_*
-target=/tmp/new-backups
+BACKUP=`ls --color=never -d /tmp/s3ql_backup_*`
 MACHINES="home work server"
 
 function cleanup(){
@@ -36,6 +35,9 @@ function cleanup(){
 }
 
 set -e
+
+source=$BACKUP
+target="$source/stripped"
 
 for machine in $MACHINES; do
     for type in yearly monthly weekly daily hourly; do
