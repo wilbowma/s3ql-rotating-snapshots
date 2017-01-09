@@ -1,6 +1,8 @@
 #!/bin/bash
 
-rsync="rsync -azh --progress"
+# Expects backups to be mounted in $BACKUPS. Strips all backups, using s3qlcp for efficient copying of
+# similar snapshots. Leaves stripped version in $BACKUP/stripper
+
 BACKUP=`ls --color=never -d /tmp/s3ql_backup_*`
 MACHINES="home work server"
 
@@ -49,20 +51,12 @@ target="$source/stripped"
 
 for machine in $MACHINES; do
     for type in yearly monthly weekly daily hourly; do
-        first_snapshot=`ls --color=never $source/$machine/$type/ | sort | head -n 1`
         mkdir -p $target/$machine/$type/
-        $rsync $source/$machine/$type/$first_snapshot $target/$machine/$type/
-        cleanup $target/$machine/$type/$first_snapshot
-        s3qllock $target/$machine/$type/$first_snapshot
-        last_snapshot=$first_snapshot
-        for snapshot in `ls --color=never $source/$machine/$type/ | sort | grep -v "$first_snapshot" | xargs echo`; do
-            if [ ! -d $target/$machine/$type/$snapshot ]; then
-               s3qlcp $target/$machine/$type/$last_snapshot $target/$machine/$type/$snapshot
-            fi
-            $rsync $source/$machine/$type/$snapshot $target/$machine/$type/
+        cp $source/$machine/$type/.expire_backups.dat $target/$machine/$type
+        for snapshot in `ls --color=never $source/$machine/$type/ | sort | xargs echo`; do
+            s3qlcp $source/$machine/$type/$snapshot $target/$machine/$type/$snapshot
             cleanup $target/$machine/$type/$snapshot
             s3qllock $target/$machine/$type/$snapshot
-            last_snapshot=$snapshot
         done
     done
 done
