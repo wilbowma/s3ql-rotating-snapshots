@@ -14,6 +14,9 @@ function cleanup(){
          -ipath "*/.emacs.d/auto-save-list" -or \
          -ipath "*/.mutt/cache" -or \
          -ipath "*/.mutt/sent" -or \
+         -iname ".~lock*.odp#" -or \
+         -iname "*.agdai" -or \
+         -iname "*.hi" -or \
          -iname "*.o" -or \
          -iname "*.out" -or \
          -iname "*.class" -or \
@@ -22,6 +25,9 @@ function cleanup(){
          -iname "*.aux" -or \
          -iname "*.bbl" -or \
          -iname "*.glob" -or \
+         -iname "*.fdb_latexmk" -or \
+         -iname "*.fls" -or \
+         -iname "*.tdo" -or \
          -iname "*.vo" -or \
          -iname "*.zo" -or \
          -iname "*.toc" -or \
