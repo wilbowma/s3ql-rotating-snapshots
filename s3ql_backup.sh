@@ -183,14 +183,14 @@ main(){
 
 unison_sync(){
   if $CLIENT; then
-    $UNISON $UNISON_PROFILE $UNISON_OPTS -batch
+    $UNISON $UNISON_PROFILE $UNISON_OPTS $WHO -batch
   fi
 }
 
 sync_lock(){
   if $CLIENT; then
     $UNISON $UNISON_PROFILE $UNISON_OPTS -batch -path \
-      $(basename $LOCKFILE) -prefer $UNISON_REMOTE_ROOT
+      $(basename $LOCKFILE) $WHO
   fi
 }
 
@@ -198,9 +198,13 @@ clear_lock(){
   echo -n '' > $LOCKFILE
 }
 
+acquire_lock(){
+  WHO="-prefer $UNISON_REMOTE_ROOT" sync_lock
+}
+
 release_lock(){
   clear_lock
-  sync_lock
+  WHO="-prefer $BACKUP" sync_lock
 }
 
 aquire_filesystem(){
@@ -223,19 +227,19 @@ aquire_filesystem(){
         echo "$HOSTNAME$$" > $LOCKFILE
         trap "clear_lock" EXIT
 
-        sync_lock
+        acquire_lock
 
         if ! cat $LOCKFILE | grep "$HOSTNAME$$" > /dev/null; then
           verbose "Invalid lockfile string"
           sleep $WAITTIME
-          sync_lock
+          acquire_lock
         else
           FLAG=1
         fi
       else
         verbose "Lock file not empty"
         sleep $WAITTIME
-        sync_lock
+        acquire_lock
       fi
     done
 
@@ -245,7 +249,7 @@ aquire_filesystem(){
     verbose "Got a lock!"
     find $BACKUP -iname "lock (conflict *on*" -not -path -delete
     trap "release_lock" EXIT
-    unison_sync
+    WHO="-force $UNISON_REMOTE_ROOT" unison_sync
 
     # Move conflicted files
     #find $BACKUP -iname "*(conflict *on*" -not -path "$BACKUP/conflicts/*" -exec mv {} $BACKUP/conflicts/ \;
@@ -287,7 +291,7 @@ unmount(){
     trap "$RMDIR '$MOUNT'; release_lock" EXIT
 
     verbose "Waiting for sync..."
-    unison_sync
+    WHO="-force $BACKUP" unison_sync
 
     release_lock
     trap "$RMDIR '$MOUNT'" EXIT
